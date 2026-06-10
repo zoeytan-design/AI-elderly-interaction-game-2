@@ -114,40 +114,137 @@ function normalizeQuestionData(data) {
     };
 }
 
+// ============================================================
+// 圖片轉 base64（GitHub Pages 靜態版用，前端直接讀取圖片）
+// ============================================================
+async function imageToBase64(imagePath) {
+    const response = await fetch(imagePath);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            // 去掉 "data:image/png;base64," 前綴，只留純 base64
+            const base64 = reader.result.split(',')[1];
+            resolve({ base64, mimeType: blob.type || 'image/png' });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+function extractJson(text) {
+    if (!text || typeof text !== 'string') return null;
+    const cleaned = text
+        .trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```$/i, '')
+        .trim();
+    try {
+        return JSON.parse(cleaned);
+    } catch (_) {
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (!match) return null;
+        try { return JSON.parse(match[0]); } catch (_) { return null; }
+    }
+}
+
+function validateQuestionData(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (typeof data.question !== 'string' || !data.question.trim()) return false;
+    if (!Array.isArray(data.options) || data.options.length !== 3) return false;
+    if (!data.options.every(opt => typeof opt === 'string' && opt.trim())) return false;
+    if (![0, 1, 2].includes(Number(data.correctIndex))) return false;
+    if (typeof data.hint !== 'string' || !data.hint.trim()) return false;
+    const unique = new Set(data.options.map(o => o.trim()));
+    if (unique.size !== 3) return false;
+    return true;
+}
+
 async function generateQuestionForLevel(level) {
     isGeneratingQuestion = true;
     aiGenerationAttempt = 0;
 
-    // 使用者要求：Gemini 失敗時自動重試，直到成功為止；不使用預設題目。
     while (true) {
         aiGenerationAttempt += 1;
         setAILoadingMessage(`AI 正在看圖片出題中...第 ${aiGenerationAttempt} 次嘗試`);
 
         try {
-            const response = await fetch('/api/generate-question', {
+            const apiKey = window._geminiApiKey;
+            if (!apiKey) throw new Error('尚未輸入 Gemini API Key');
+
+            const { base64, mimeType } = await imageToBase64(level.image);
+
+            const GEMINI_MODEL = 'gemini-2.0-flash';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
+            const systemInstruction = `你是高齡友善互動記憶遊戲的 AI 出題系統。玩家會先看一張窗外圖片 10 秒，之後圖片會被水滴遮住，玩家必須根據記憶回答問題。請你根據圖片內容，每次隨機產生一題新的觀察記憶題、三個選項、正確答案索引，以及一個提示。你可以自由選擇圖片中任何可見內容來提問，但問題必須能直接從圖片中回答，不可以編造圖片外的內容。`;
+
+            const prompt = `關卡名稱：${level.id || level.name}
+隨機種子：${Date.now()}-${Math.random()}
+
+請根據圖片隨機生成一題新的觀察記憶題。
+
+出題規則：
+1. 你可以自由提問圖片中任何看得見的內容，例如人物、物件、顏色、位置、動作、數量、背景細節。
+2. 題目必須能直接從圖片回答，不要問圖片看不出來的事情。
+3. 問題文字請自然、像孫子或孫女在問阿公阿嬤。
+4. 問題不要超過 55 個中文字。
+5. 三個選項都要短，單個選項不要超過 8 個中文字。
+6. 三個選項必須不同，且只能有一個正確答案。
+7. correctIndex 必須是 0、1、2，代表 options 中正確答案的位置。
+8. hint 必須根據這一次生成的問題和正確答案產生，可以幫玩家回想，但不要直接說出完整答案。
+9. targetObject 請寫這題主要觀察的物件或人物。
+10. questionType 可自由填寫，例如：顏色、物件、數量、位置、動作、細節、其他。
+11. 請只輸出 JSON，不要 markdown，不要解釋。
+
+這是第 ${aiGenerationAttempt} 次生成，請和前一次盡量不同。
+
+回傳格式：
+{"question":"...","options":["...","...","..."],"correctIndex":0,"hint":"...","targetObject":"...","questionType":"..."}`;
+
+            const body = {
+                system_instruction: { parts: [{ text: systemInstruction }] },
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [
+                            { inline_data: { mime_type: mimeType, data: base64 } },
+                            { text: prompt }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 1.05,
+                    topP: 0.95,
+                    responseMimeType: 'application/json'
+                }
+            };
+
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    levelId: level.id || level.name,
-                    imagePath: level.image,
-                    randomSeed: `${Date.now()}-${Math.random()}`
-                })
+                body: JSON.stringify(body)
             });
 
             if (!response.ok) {
-                throw new Error(`/api/generate-question 回傳 ${response.status}`);
+                const errText = await response.text();
+                throw new Error(`Gemini API 回傳 ${response.status}: ${errText}`);
             }
 
             const result = await response.json();
+            const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const parsed = extractJson(rawText);
 
-            if (!result.success || result.source !== 'gemini') {
-                throw new Error(result.message || result.reason || 'Gemini 尚未成功生成題目');
+            if (!validateQuestionData(parsed)) {
+                throw new Error('Gemini 回傳格式驗證失敗');
             }
 
-            const questionData = normalizeQuestionData(result.questionData);
+            const questionData = normalizeQuestionData(parsed);
             console.log(`✅ Gemini 題目生成成功：${level.name}`, questionData);
             isGeneratingQuestion = false;
             return questionData;
+
         } catch (error) {
             console.warn(`Gemini 第 ${aiGenerationAttempt} 次出題失敗，準備自動重試：`, error);
             setAILoadingMessage(`AI 出題暫時失敗，正在自動重試...第 ${aiGenerationAttempt + 1} 次`);
@@ -237,6 +334,27 @@ window.addEventListener('DOMContentLoaded', () => {
             dialogueTextEl.textContent = message;
         }
     };
+
+    // ============================================================
+    // API Key 輸入處理
+    // ============================================================
+    const apiKeyInput   = document.getElementById('gemini-api-key-input');
+    const apiKeyToggle  = document.getElementById('api-key-toggle-btn');
+    const apiKeyError   = document.getElementById('api-key-error');
+
+    if (apiKeyToggle && apiKeyInput) {
+        apiKeyToggle.addEventListener('click', () => {
+            const isHidden = apiKeyInput.type === 'password';
+            apiKeyInput.type = isHidden ? 'text' : 'password';
+            apiKeyToggle.textContent = isHidden ? '🙈' : '👁';
+        });
+    }
+
+    if (apiKeyInput) {
+        apiKeyInput.addEventListener('input', () => {
+            if (apiKeyError) apiKeyError.classList.add('hidden');
+        });
+    }
 
     let userGender = 'female';
     let grandchildGender = 'male';
@@ -352,6 +470,16 @@ window.addEventListener('DOMContentLoaded', () => {
     updateProfilePreview({ updateDialogue: true });
 
     startGameBtn.addEventListener('click', () => {
+        // 檢查 API Key
+        const enteredKey = apiKeyInput ? apiKeyInput.value.trim() : '';
+        if (!enteredKey) {
+            if (apiKeyError) apiKeyError.classList.remove('hidden');
+            if (apiKeyInput) apiKeyInput.focus();
+            return;
+        }
+        // 存在記憶體，不寫入任何持久化儲存
+        window._geminiApiKey = enteredKey;
+
         applyProfileSettings();
         resetAIQuestionState({ clearCache: true });
         currentLevelIndex = 0;
