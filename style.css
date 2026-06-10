@@ -897,30 +897,20 @@ html, body {
    AI 提示泡泡（問答階段 5 秒未作答時，孫子/孫女角色旁顯示）
    ========================================================================== */
 .ai-hint-bubble {
-    position: absolute;
-    top: 8%;
-    right: 20px;
-    max-width: 300px;
-    padding: 20px 24px;
+    width: 100%;
+    max-width: 340px;
+    padding: 16px 20px;
     background: rgba(255, 251, 234, 0.97);
     border: 4px solid #8B5E3C;
     border-radius: 28px;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
     z-index: 30;
     animation: hintPop 0.35s ease-out;
+    margin-bottom: 12px;
 }
 
 .ai-hint-bubble::before {
-    content: "";
-    position: absolute;
-    left: -18px;
-    top: 36px;
-    width: 26px;
-    height: 26px;
-    background: rgba(255, 251, 234, 0.97);
-    border-left: 4px solid #8B5E3C;
-    border-bottom: 4px solid #8B5E3C;
-    transform: rotate(45deg);
+    display: none;
 }
 
 .ai-hint-label {
