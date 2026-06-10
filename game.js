@@ -414,6 +414,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentHighlightBtn = null;
     let lastSelectionTime = 0;
     let hoveredButtonTime = 0;
+    let isInitializingCamera = false; // 防止重複初始化
 
     waterDropsImg.onload = () => {
         isTextureLoaded = true;
@@ -588,7 +589,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function showCameraError(message) {
         if (!cameraErrorOverlay || !cameraErrorMessage) return;
-        cameraErrorMessage.textContent = message || '請使用本地伺服器開啟本遊戲並允許相機權限。';
+        cameraErrorMessage.textContent = message || '找不到相機設備，手勢控制無法使用。可以改用滑鼠在窗戶上擦拭，用點擊選項作答。';
         cameraErrorOverlay.classList.remove('hidden');
     }
 
@@ -1014,19 +1015,24 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function initMediapipe() {
+        if (isInitializingCamera) return;
+        isInitializingCamera = true;
         console.log('正在啟動 Mediapipe 手勢後台...');
-        // 先用 getUserMedia 測試相機，提早攔截錯誤，避免 MediaPipe 跳原生 alert
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             showCameraError('此瀏覽器不支援相機功能。可以改用滑鼠在窗戶上擦拭，用點擊選項作答。');
+            isInitializingCamera = false;
             return;
         }
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(testStream => {
                 testStream.getTracks().forEach(t => t.stop());
-                // 等待瀏覽器釋放相機裝置後再交給 MediaPipe
-                setTimeout(() => _startMediapipeCamera(), 300);
+                setTimeout(() => {
+                    isInitializingCamera = false;
+                    _startMediapipeCamera();
+                }, 300);
             })
             .catch(err => {
+                isInitializingCamera = false;
                 console.warn('相機預檢失敗，不啟動 MediaPipe：', err);
                 const errName = err.name || '';
                 let message = '';
