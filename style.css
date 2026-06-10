@@ -250,7 +250,98 @@ html, body {
     line-height: 1;
 }
 
-.camera-error-overlay {
+/* ==========================================================================
+   API Key 輸入區塊
+   ========================================================================== */
+.api-key-section {
+    margin-top: 24px;
+    background: #f7fbff;
+    border: 2px solid #1a1a1a;
+    border-radius: 24px;
+    padding: 20px 24px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.api-key-label {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #1a1a1a;
+}
+
+.api-key-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.api-key-input {
+    flex: 1;
+    height: 58px;
+    font-size: 18px;
+    padding: 0 18px;
+    border: 2px solid #1a1a1a;
+    border-radius: 16px;
+    background: #ffffff;
+    outline: none;
+    letter-spacing: 0.04em;
+    font-family: monospace;
+    transition: border-color 0.18s;
+}
+
+.api-key-input:focus {
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.18);
+}
+
+.api-key-toggle-btn {
+    width: 58px;
+    height: 58px;
+    font-size: 22px;
+    border: 2px solid #1a1a1a;
+    border-radius: 16px;
+    background: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.16s;
+}
+
+.api-key-toggle-btn:hover {
+    background: #f0f0f0;
+}
+
+.api-key-hint {
+    font-size: 16px;
+    color: #666666;
+    line-height: 1.5;
+}
+
+.api-key-hint a {
+    color: #4a90d9;
+    text-decoration: underline;
+}
+
+.api-key-error {
+    font-size: 18px;
+    color: #d64444;
+    font-weight: 600;
+    padding: 10px 14px;
+    background: #fff0f0;
+    border: 1.5px solid #d64444;
+    border-radius: 12px;
+}
+
+.api-key-error.hidden {
+    display: none;
+}
+
+
     position: fixed;
     inset: 0;
     background: rgba(20, 20, 30, 0.82);
