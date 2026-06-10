@@ -178,9 +178,9 @@ async function generateQuestionForLevel(level) {
             const GEMINI_MODEL = 'gemini-2.0-flash';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
-            const systemInstruction = `你是高齡友善互動記憶遊戲的 AI 出題系統。玩家會先看一張窗外圖片 10 秒，之後圖片會被水滴遮住，玩家必須根據記憶回答問題。請你根據圖片內容，每次隨機產生一題新的觀察記憶題、三個選項、正確答案索引，以及一個提示。你可以自由選擇圖片中任何可見內容來提問，但問題必須能直接從圖片中回答，不可以編造圖片外的內容。`;
+            const prompt = `你是高齡友善互動記憶遊戲的 AI 出題系統。玩家會先看一張窗外圖片 10 秒，之後圖片會被水滴遮住，玩家必須根據記憶回答問題。
 
-            const prompt = `關卡名稱：${level.id || level.name}
+關卡名稱：${level.id || level.name}
 隨機種子：${Date.now()}-${Math.random()}
 
 請根據圖片隨機生成一題新的觀察記憶題。
@@ -196,15 +196,14 @@ async function generateQuestionForLevel(level) {
 8. hint 必須根據這一次生成的問題和正確答案產生，可以幫玩家回想，但不要直接說出完整答案。
 9. targetObject 請寫這題主要觀察的物件或人物。
 10. questionType 可自由填寫，例如：顏色、物件、數量、位置、動作、細節、其他。
-11. 請只輸出 JSON，不要 markdown，不要解釋。
+11. 請只輸出純 JSON，不要加 markdown 反引號，不要任何解釋文字。
 
 這是第 ${aiGenerationAttempt} 次生成，請和前一次盡量不同。
 
-回傳格式：
+回傳格式（只輸出這個 JSON，其他什麼都不要）：
 {"question":"...","options":["...","...","..."],"correctIndex":0,"hint":"...","targetObject":"...","questionType":"..."}`;
 
             const body = {
-                system_instruction: { parts: [{ text: systemInstruction }] },
                 contents: [
                     {
                         role: 'user',
@@ -216,8 +215,7 @@ async function generateQuestionForLevel(level) {
                 ],
                 generationConfig: {
                     temperature: 1.05,
-                    topP: 0.95,
-                    responseMimeType: 'application/json'
+                    topP: 0.95
                 }
             };
 
@@ -228,15 +226,29 @@ async function generateQuestionForLevel(level) {
             });
 
             if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Gemini API 回傳 ${response.status}: ${errText}`);
+                const errJson = await response.json().catch(() => null);
+                const errMsg = errJson?.error?.message || `HTTP ${response.status}`;
+                const errStatus = response.status;
+
+                // 針對常見錯誤給出明確提示
+                if (errStatus === 400) throw new Error(`API Key 格式錯誤或請求有問題：${errMsg}`);
+                if (errStatus === 401 || errStatus === 403) throw new Error(`API Key 無效或沒有權限，請確認 Key 是從 AI Studio 申請的：${errMsg}`);
+                if (errStatus === 429) throw new Error(`超過 Gemini 免費使用上限，請稍後再試：${errMsg}`);
+                throw new Error(`Gemini API 回傳 ${errStatus}：${errMsg}`);
             }
 
             const result = await response.json();
             const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            if (!rawText) {
+                const finishReason = result?.candidates?.[0]?.finishReason || '未知';
+                throw new Error(`Gemini 沒有回傳內容，finishReason: ${finishReason}`);
+            }
+
             const parsed = extractJson(rawText);
 
             if (!validateQuestionData(parsed)) {
+                console.warn('Gemini 原始回傳：', rawText);
                 throw new Error('Gemini 回傳格式驗證失敗');
             }
 
@@ -246,8 +258,8 @@ async function generateQuestionForLevel(level) {
             return questionData;
 
         } catch (error) {
-            console.warn(`Gemini 第 ${aiGenerationAttempt} 次出題失敗，準備自動重試：`, error);
-            setAILoadingMessage(`AI 出題暫時失敗，正在自動重試...第 ${aiGenerationAttempt + 1} 次`);
+            console.warn(`Gemini 第 ${aiGenerationAttempt} 次出題失敗：`, error.message);
+            setAILoadingMessage(`出題失敗（${error.message}），自動重試第 ${aiGenerationAttempt + 1} 次...`);
             await sleep(Math.min(1800 + aiGenerationAttempt * 300, 4000));
         }
     }
