@@ -432,8 +432,21 @@ window.addEventListener('DOMContentLoaded', () => {
         return Array.from(inputs).find(input => input.checked)?.value || fallback;
     }
 
+    let _lastCharacterIndex = 0;
+
+    function rotateCharacterImage() {
+        if (!characterImage) return;
+        const prefix = grandchildGender === 'female' ? 'granddaughter' : 'grandson';
+        const alt    = grandchildGender === 'female' ? '孫女' : '孫子';
+        // 循環 1 → 2 → 3 → 1 ...
+        _lastCharacterIndex = (_lastCharacterIndex % 3) + 1;
+        characterImage.src = `Image/${prefix}${_lastCharacterIndex}.png`;
+        characterImage.alt = alt;
+    }
+
     function getGrandchildAvatar() {
-        return grandchildGender === 'female' ? 'Image/granddaughter1.png' : 'Image/grandson1.png';
+        const prefix = grandchildGender === 'female' ? 'granddaughter' : 'grandson';
+        return `Image/${prefix}1.png`;
     }
 
     function updateCharacterImages() {
@@ -820,6 +833,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (gameState !== 'wiping') return;
         gameState = 'countdown';
         console.log('🎉 進入第二階段：倒數記憶！');
+        rotateCharacterImage();
 
         prepareQuestionForCurrentLevel();
 
@@ -860,6 +874,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function startQuestionState() {
         console.log('❓ 進入第三階段：AI 出題 / 問答！');
+        rotateCharacterImage();
 
         const level = LEVELS[currentLevelIndex];
 
@@ -923,6 +938,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function startResultState(isCorrect) {
         gameState = 'result';
         console.log(`🏆 進入第四階段：結果 (${isCorrect ? '答對' : '答錯'})`);
+        rotateCharacterImage();
         const level = LEVELS[currentLevelIndex];
         if (windowBgImage && level) {
             windowBgImage.src = level.image;
