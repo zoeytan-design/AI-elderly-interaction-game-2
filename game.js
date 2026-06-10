@@ -1027,10 +1027,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 console.log('📸 背景視訊鏡頭已順利開啟，手勢偵測就緒！');
             })
             .catch(err => {
-                console.warn('無法啟動相機 (file:// 協議限制或無相機設備)：', err);
-                const message = window.location.protocol === 'file:'
-                    ? '請使用本地伺服器啟動此遊戲，然後在 Chrome 中開啟 http://localhost:3000，並允許相機權限。'
-                    : `相機無法啟動：${err.name || err.message || 'Permission denied'}`;
+                console.warn('無法啟動相機：', err);
+                let message = '';
+                const errName = err.name || '';
+                if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+                    message = '找不到相機設備。請確認電腦有接相機，或允許瀏覽器存取相機後重新整理頁面。\n沒有相機也沒關係，可以改用滑鼠在窗戶上擦拭，用點擊選項作答。';
+                } else if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+                    message = '相機權限被拒絕。請點擊網址列左邊的鎖頭圖示，允許相機存取後重新整理頁面。\n沒有相機也沒關係，可以改用滑鼠在窗戶上擦拭，用點擊選項作答。';
+                } else {
+                    message = `相機無法啟動（${errName || err.message || '未知錯誤'}）。\n沒有相機也沒關係，可以改用滑鼠在窗戶上擦拭，用點擊選項作答。`;
+                }
                 showCameraError(message);
             });
     }
