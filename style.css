@@ -665,15 +665,14 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 10; /* 高於窗框圖片 */
+    z-index: 10;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: flex-start; /* 按附圖靠左側偏中 */
+    align-items: center; /* 置中 */
     gap: 20px;
     padding: 0 60px;
     pointer-events: all;
-    /* 入場淡入 */
     animation: fadeInScale 0.5s ease forwards;
 }
 
@@ -900,8 +899,8 @@ html, body {
 .ai-hint-bubble {
     position: absolute;
     top: 8%;
-    right: -30px;
-    max-width: 340px;
+    right: 20px;
+    max-width: 300px;
     padding: 20px 24px;
     background: rgba(255, 251, 234, 0.97);
     border: 4px solid #8B5E3C;
