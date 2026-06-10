@@ -48,6 +48,18 @@
                     <button class="start-game-btn" id="start-game-btn"><span class="start-icon">▶</span><span>開始</span></button>
                 </div>
             </div>
+
+            <!-- API Key 輸入區塊 -->
+            <div class="api-key-section">
+                <div class="api-key-label">🔑 Gemini API Key</div>
+                <div class="api-key-input-row">
+                    <input type="password" id="gemini-api-key-input" placeholder="請貼上你的 Gemini API Key" class="api-key-input" autocomplete="off" spellcheck="false">
+                    <button class="api-key-toggle-btn" id="api-key-toggle-btn" title="顯示／隱藏">👁</button>
+                </div>
+                <div class="api-key-hint">Key 只存在這個分頁的記憶體中，關閉分頁即消失。沒有 Key 嗎？<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">點這裡申請</a></div>
+                <div class="api-key-error hidden" id="api-key-error">請先輸入 Gemini API Key 才能開始遊戲</div>
+            </div>
+            </div>
         </div>
     </div>
 
