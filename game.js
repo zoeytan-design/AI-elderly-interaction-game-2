@@ -1015,6 +1015,32 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function initMediapipe() {
         console.log('正在啟動 Mediapipe 手勢後台...');
+        // 先用 getUserMedia 測試相機，提早攔截錯誤，避免 MediaPipe 跳原生 alert
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showCameraError('此瀏覽器不支援相機功能。可以改用滑鼠在窗戶上擦拭，用點擊選項作答。');
+            return;
+        }
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(testStream => {
+                testStream.getTracks().forEach(t => t.stop());
+                _startMediapipeCamera();
+            })
+            .catch(err => {
+                console.warn('相機預檢失敗，不啟動 MediaPipe：', err);
+                const errName = err.name || '';
+                let message = '';
+                if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+                    message = '找不到相機設備，手勢控制無法使用。可以改用滑鼠在窗戶上擦拭，用點擊選項作答。';
+                } else if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+                    message = '相機權限被拒絕。請點擊網址列鎖頭圖示允許相機，或直接用滑鼠和點擊作答。';
+                } else {
+                    message = `相機無法使用（${errName || err.message}），手勢控制無法啟動。可以改用滑鼠作答。`;
+                }
+                showCameraError(message);
+            });
+    }
+
+    function _startMediapipeCamera() {
         const hands = new Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
         });
@@ -1040,17 +1066,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 console.log('📸 背景視訊鏡頭已順利開啟，手勢偵測就緒！');
             })
             .catch(err => {
-                console.warn('無法啟動相機：', err);
-                let message = '';
-                const errName = err.name || '';
-                if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
-                    message = '找不到相機設備。請確認電腦有接相機，或允許瀏覽器存取相機後重新整理頁面。\n沒有相機也沒關係，可以改用滑鼠在窗戶上擦拭，用點擊選項作答。';
-                } else if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
-                    message = '相機權限被拒絕。請點擊網址列左邊的鎖頭圖示，允許相機存取後重新整理頁面。\n沒有相機也沒關係，可以改用滑鼠在窗戶上擦拭，用點擊選項作答。';
-                } else {
-                    message = `相機無法啟動（${errName || err.message || '未知錯誤'}）。\n沒有相機也沒關係，可以改用滑鼠在窗戶上擦拭，用點擊選項作答。`;
-                }
-                showCameraError(message);
+                console.warn('MediaPipe Camera 啟動失敗：', err);
+                showCameraError(`相機啟動失敗（${err.name || err.message}）。可以改用滑鼠在窗戶上擦拭，用點擊選項作答。`);
             });
     }
 
