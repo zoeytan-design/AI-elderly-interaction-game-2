@@ -18,8 +18,8 @@
 const GAME_CONFIG = {
     WIPE_SHAPE: 'square',
     WIPE_SIZE: 140,
-    LEFT_PANE_THRESHOLD: 50,
-    RIGHT_PANE_THRESHOLD: 50,
+    LEFT_PANE_THRESHOLD: 70,
+    RIGHT_PANE_THRESHOLD: 70,
     COUNTDOWN_TIME: 10,
 };
 
@@ -328,9 +328,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const resultActions      = document.getElementById('result-actions');
     const btnNext            = document.getElementById('btn-next');
     const btnHome            = document.getElementById('btn-home');
-    const cameraErrorOverlay = document.getElementById('camera-error-overlay');
-    const cameraErrorMessage = document.getElementById('camera-error-message');
-    const cameraErrorRetry   = document.getElementById('camera-error-retry');
+    // 相機錯誤欄已移除，不需要 DOM 引用
     const startupOverlay        = document.getElementById('startup-overlay');
     const startGameBtn         = document.getElementById('start-game-btn');
     const startupCharacterImage = document.getElementById('startup-character-image');
@@ -588,9 +586,8 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function showCameraError(message) {
-        if (!cameraErrorOverlay || !cameraErrorMessage) return;
-        cameraErrorMessage.textContent = message || '找不到相機設備，手勢控制無法使用。可以改用滑鼠在窗戶上擦拭，用點擊選項作答。';
-        cameraErrorOverlay.classList.remove('hidden');
+        // 相機錯誤不顯示 UI，只記錄到 console
+        console.warn('📷 相機提示：', message);
     }
 
     function showStartupScreen() {
@@ -609,16 +606,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function hideCameraError() {
-        if (!cameraErrorOverlay) return;
-        cameraErrorOverlay.classList.add('hidden');
+        // 無操作，相機錯誤欄已移除
     }
 
     window.addEventListener('resize', resizeCanvas);
-
-    cameraErrorRetry.addEventListener('click', () => {
-        hideCameraError();
-        initMediapipe();
-    });
 
     canvas.addEventListener('pointerdown', handlePointerStart);
     canvas.addEventListener('pointermove', handlePointerMove);
