@@ -405,6 +405,16 @@ window.addEventListener('DOMContentLoaded', () => {
     let pointerLastX        = null;
     let pointerLastY        = null;
 
+    // 手勢相關變數（需在 resetFog 之前宣告）
+    let isWebcamActive = false;
+    let cameraInstance = null;
+    let gestureLastX   = null;
+    let gestureLastY   = null;
+    let fingerPoints = [];
+    let currentHighlightBtn = null;
+    let lastSelectionTime = 0;
+    let hoveredButtonTime = 0;
+
     waterDropsImg.onload = () => {
         isTextureLoaded = true;
         console.log('💧 靜態霧氣紋理載入成功，啟動畫布...');
@@ -1002,15 +1012,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-
-    let isWebcamActive = false;
-    let cameraInstance = null;
-    let gestureLastX   = null;
-    let gestureLastY   = null;
-    let fingerPoints = [];
-    let currentHighlightBtn = null;
-    let lastSelectionTime = 0;
-    let hoveredButtonTime = 0;
 
     function initMediapipe() {
         console.log('正在啟動 Mediapipe 手勢後台...');
