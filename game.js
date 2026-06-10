@@ -1023,7 +1023,8 @@ window.addEventListener('DOMContentLoaded', () => {
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(testStream => {
                 testStream.getTracks().forEach(t => t.stop());
-                _startMediapipeCamera();
+                // 等待瀏覽器釋放相機裝置後再交給 MediaPipe
+                setTimeout(() => _startMediapipeCamera(), 300);
             })
             .catch(err => {
                 console.warn('相機預檢失敗，不啟動 MediaPipe：', err);
