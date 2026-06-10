@@ -175,7 +175,7 @@ async function generateQuestionForLevel(level) {
 
             const { base64, mimeType } = await imageToBase64(level.image);
 
-            const GEMINI_MODEL = 'gemini-2.0-flash';
+            const GEMINI_MODEL = 'gemini-2.5-flash';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
             const prompt = `你是高齡友善互動記憶遊戲的 AI 出題系統。玩家會先看一張窗外圖片 10 秒，之後圖片會被水滴遮住，玩家必須根據記憶回答問題。
